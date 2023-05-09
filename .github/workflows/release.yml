@@ -1,0 +1,19 @@
+name: Create new release
+
+on:
+  push:
+    tags:
+      - v**
+
+jobs:
+  publish-release:
+    name: Publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          # create a draft release which needs manual approval
+          draft: true
+          files: ${{ steps.list-artifacts.outputs.ARTIFACTS }}

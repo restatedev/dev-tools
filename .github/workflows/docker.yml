@@ -1,0 +1,13 @@
+name: Build docker image
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - v**
+
+jobs:
+  build-docker-image:
+    name: Build docker image
+    uses: restatedev/restate/.github/workflows/docker.yml@main
+    secrets: inherit
