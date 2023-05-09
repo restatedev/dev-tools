@@ -34,3 +34,5 @@ ENV BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_gnu="--sysroot=/usr/x86_64-lin
 ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
 RUN cargo install cargo-chef@0.1.59 cargo-license@0.5.1
 WORKDIR /restate
+# Make git work if different owner runs commands
+RUN git config --global --add safe.directory /restate
