@@ -1,11 +1,8 @@
 FROM --platform=$BUILDPLATFORM rust:1.67.1-bookworm
 # prepopulate cargo index
 RUN cargo search --limit=0
-RUN dpkg --add-architecture amd64 && dpkg --add-architecture arm64
 RUN apt update && apt upgrade -y
 RUN apt -y install \
-    musl-dev:arm64 \
-    musl-dev:amd64 \
     g++-x86-64-linux-gnu \
     g++-aarch64-linux-gnu \
     protobuf-compiler \
@@ -13,6 +10,11 @@ RUN apt -y install \
     clang \
     llvm \
     ca-certificates
+RUN dpkg --add-architecture amd64 && dpkg --add-architecture arm64
+RUN apt update
+RUN apt -y install \
+    musl-dev:arm64 \
+    musl-dev:amd64
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 RUN rustup target add \
     x86_64-unknown-linux-musl \
