@@ -23,17 +23,40 @@ RUN rustup target add \
     x86_64-unknown-linux-gnu \
     aarch64-unknown-linux-gnu
 RUN rustup component add clippy rustfmt
+RUN cargo install cargo-chef@0.1.62 cargo-license@0.5.1
+
+ARG TARGETARCH
+RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
+    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
+    tar -xvf sccache.tar.gz && \
+    rm sccache.tar.gz && \
+    cp sccache-v0.7.4-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
+    rm -rf sccache-v0.7.4-${arch}-unknown-linux-musl
+
+ENV SCCACHE_DIR=/usr/local/sccache
+
 ENV CC_x86_64_unknown_linux_musl="clang"
 ENV AR_x86_64_unknown_linux_musl="llvm-ar"
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_RUSTFLAGS="-Clink-self-contained=yes -Clinker=rust-lld"
+
 ENV CC_aarch64_unknown_linux_musl="clang"
 ENV AR_aarch64_unknown_linux_musl="llvm-ar"
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUSTFLAGS="-Clink-self-contained=yes -Clinker=rust-lld"
+
+ENV CC_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-gcc"
+ENV CXX_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-g++"
+ENV AR_x86_64_unknown_linux_gnu="x86_64-linux-gnu-ar"
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="x86_64-linux-gnu-gcc"
-ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc"
 ENV BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_gnu="--sysroot=/usr/x86_64-linux-gnu"
+
+ENV CC_aarch64_unknown_linux_gnu="sccache aarch64-linux-gnu-gcc"
+ENV CXX_aarch64_unknown_linux_gnu="sccache aarch64-linux-gnu-g++"
+ENV AR_aarch64_unknown_linux_gnu="aarch64-linux-gnu-ar"
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc"
 ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
-RUN cargo install cargo-chef@0.1.62 cargo-license@0.5.1
+
+ENV RUSTC_WRAPPER="sccache"
+
 WORKDIR /restate
 # Make git work if different owner runs commands
 RUN git config --global --add safe.directory /restate
