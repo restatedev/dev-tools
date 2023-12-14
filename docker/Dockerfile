@@ -8,7 +8,6 @@ RUN apt -y install \
     protobuf-compiler \
     libprotoc-dev \
     clang \
-    sccache \
     cmake \
     llvm \
     ca-certificates
@@ -25,6 +24,14 @@ RUN rustup target add \
     aarch64-unknown-linux-gnu
 RUN rustup component add clippy rustfmt
 RUN cargo install cargo-chef@0.1.62 cargo-license@0.5.1
+
+ARG TARGETARCH
+RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
+    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
+    tar -xvf sccache.tar.gz && \
+    rm sccache.tar.gz && \
+    cp sccache-v0.7.4-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
+    rm -rf sccache-v0.7.4-${arch}-unknown-linux-musl
 
 ENV SCCACHE_DIR=/usr/local/sccache
 
