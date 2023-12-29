@@ -1,4 +1,4 @@
-FROM rust:1.72.0-bookworm
+FROM rust:1.75.0-bookworm
 # prepopulate cargo index
 RUN cargo search --limit=0
 RUN apt update && apt upgrade -y
