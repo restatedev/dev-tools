@@ -2,9 +2,7 @@ name: Build docker image
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - v**
+  workflow_call:
 
 jobs:
   build-docker-image:

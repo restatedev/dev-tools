@@ -6,9 +6,15 @@ on:
       - v**
 
 jobs:
+  build-docker-image:
+    name: Build release Docker image
+    uses: ./.github/workflows/docker.yml
+    secrets: inherit
+
   publish-release:
     name: Publish release
     runs-on: ubuntu-latest
+    needs: [build-docker-image]
 
     steps:
       - name: Create release
@@ -16,4 +22,3 @@ jobs:
         with:
           # create a draft release which needs manual approval
           draft: true
-          files: ${{ steps.list-artifacts.outputs.ARTIFACTS }}
