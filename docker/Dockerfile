@@ -1,3 +1,7 @@
+FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS aarch64-musl
+
+FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS x86_64-musl
+
 FROM rust:1.75.0-bookworm
 # prepopulate cargo index
 RUN cargo search --limit=0
@@ -11,11 +15,6 @@ RUN apt -y install \
     cmake \
     llvm \
     ca-certificates
-RUN dpkg --add-architecture amd64 && dpkg --add-architecture arm64
-RUN apt update
-RUN apt -y install \
-    musl-dev:arm64 \
-    musl-dev:amd64
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 RUN rustup target add \
     x86_64-unknown-linux-musl \
@@ -24,6 +23,10 @@ RUN rustup target add \
     aarch64-unknown-linux-gnu
 RUN rustup component add clippy rustfmt
 RUN cargo install cargo-chef@0.1.62 cargo-license@0.5.1
+
+COPY --from=x86_64-musl "/usr/local/musl" /usr/local/musl-x86_64/
+COPY --from=aarch64-musl "/usr/local/musl" /usr/local/musl-aarch64/
+ENV PATH="${PATH}:/usr/local/musl-x86_64/bin:/usr/local/musl-aarch64/bin"
 
 ARG TARGETARCH
 RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
@@ -35,13 +38,17 @@ RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
 
 ENV SCCACHE_DIR=/usr/local/sccache
 
-ENV CC_x86_64_unknown_linux_musl="clang"
-ENV AR_x86_64_unknown_linux_musl="llvm-ar"
-ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_RUSTFLAGS="-Clink-self-contained=yes -Clinker=rust-lld"
+ENV CC_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-gcc"
+ENV CXX_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-g++"
+ENV AR_x86_64_unknown_linux_musl="x86_64-unknown-linux-musl-ar"
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="x86_64-unknown-linux-musl-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_musl="--sysroot=/usr/x86_64-linux-musl"
 
-ENV CC_aarch64_unknown_linux_musl="clang"
-ENV AR_aarch64_unknown_linux_musl="llvm-ar"
-ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUSTFLAGS="-Clink-self-contained=yes -Clinker=rust-lld"
+ENV CC_aarch64_unknown_linux_musl="sccache aarch64-unknown-linux-musl-gcc"
+ENV CXX_aarch64_unknown_linux_musl="sccache aarch64-unknown-linux-musl-g++"
+ENV AR_aarch64_unknown_linux_musl="aarch64-unknown-linux-musl-ar"
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER="aarch64-unknown-linux-musl-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_musl="--sysroot=/usr/aarch64-linux-musl"
 
 ENV CC_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-gcc"
 ENV CXX_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-g++"
