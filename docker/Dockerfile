@@ -28,6 +28,10 @@ COPY --from=x86_64-musl "/usr/local/musl" /usr/local/musl-x86_64/
 COPY --from=aarch64-musl "/usr/local/musl" /usr/local/musl-aarch64/
 ENV PATH="${PATH}:/usr/local/musl-x86_64/bin:/usr/local/musl-aarch64/bin"
 
+# linker script forcing static compilation of libstdc++
+RUN echo 'GROUP ( libstdc++.a AS_NEEDED( -lgcc -lc -lm ) )' > $(readlink -f $(x86_64-unknown-linux-musl-g++ --print-file-name libstdc++.so))
+RUN echo 'GROUP ( libstdc++.a AS_NEEDED( -lgcc -lc -lm ) )' > $(readlink -f $(aarch64-unknown-linux-musl-g++ --print-file-name libstdc++.so))
+
 ARG TARGETARCH
 RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
     curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
