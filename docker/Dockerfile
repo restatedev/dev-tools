@@ -42,6 +42,10 @@ RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
 
 ENV SCCACHE_DIR=/usr/local/sccache
 
+RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
+    curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.29.0/buf-Linux-${arch}" -o "/usr/bin/buf" && \
+    chmod +x "/usr/bin/buf"
+
 ENV CC_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-gcc"
 ENV CXX_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-g++"
 ENV AR_x86_64_unknown_linux_musl="x86_64-unknown-linux-musl-ar"
