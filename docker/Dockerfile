@@ -14,6 +14,7 @@ RUN apt -y install \
     clang \
     cmake \
     llvm \
+    liburing-dev \
     ca-certificates
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 RUN rustup target add \
