@@ -4,7 +4,7 @@ FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS x86_64-musl
 
 FROM rust:1.75.0-bookworm
 # prepopulate cargo index
-RUN cargo search --limit=0
+RUN cargo search --limit=1
 RUN apt update && apt upgrade -y
 RUN apt -y install \
     g++-x86-64-linux-gnu \
