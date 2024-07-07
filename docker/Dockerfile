@@ -23,7 +23,7 @@ RUN rustup target add \
     x86_64-unknown-linux-gnu \
     aarch64-unknown-linux-gnu
 RUN rustup component add clippy rustfmt
-RUN cargo install cargo-chef@0.1.62 cargo-license@0.5.1
+RUN cargo install cargo-chef@0.1.67 cargo-license@0.6.1
 
 COPY --from=x86_64-musl "/usr/local/musl" /usr/local/musl-x86_64/
 COPY --from=aarch64-musl "/usr/local/musl" /usr/local/musl-aarch64/
