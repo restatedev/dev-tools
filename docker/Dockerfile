@@ -1,8 +1,6 @@
-# Use the x86_64 and aarch64 musl images directly
 FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS musl_x86_64
 FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS musl_aarch64
 
-# Use slimmer base image
 FROM rust:1.80.1-slim-bookworm AS build-base
 
 # Prepopulate cargo index and install dependencies
@@ -59,24 +57,28 @@ ENV CC_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-gcc"
 ENV CXX_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-g++"
 ENV AR_x86_64_unknown_linux_musl="x86_64-unknown-linux-musl-ar"
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="x86_64-unknown-linux-musl-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_musl="--sysroot=/usr/x86_64-linux-musl"
 
 # aarch64 musl
 ENV CC_aarch64_unknown_linux_musl="sccache aarch64-unknown-linux-musl-gcc"
 ENV CXX_aarch64_unknown_linux_musl="sccache aarch64-unknown-linux-musl-g++"
-ENV AR_aarch64_unknown-linux_musl="aarch64-unknown-linux-musl-ar"
+ENV AR_aarch64_unknown_linux_musl="aarch64-unknown-linux-musl-ar"
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER="aarch64-unknown-linux-musl-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_musl="--sysroot=/usr/aarch64-linux-musl"
 
 # x86_64 gnu
 ENV CC_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-gcc"
 ENV CXX_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-g++"
 ENV AR_x86_64_unknown_linux_gnu="x86_64-linux-gnu-ar"
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="x86_64-linux-gnu-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_gnu="--sysroot=/usr/x86_64-linux-gnu"
 
 # aarch64 gnu
 ENV CC_aarch64_unknown_linux_gnu="sccache aarch64-linux-gnu-gcc"
 ENV CXX_aarch64_unknown_linux_gnu="sccache aarch64-linux-gnu-g++"
-ENV AR_aarch64_unknown-linux-gnu="aarch64-linux-gnu-ar"
+ENV AR_aarch64_unknown_linux_gnu="aarch64-linux-gnu-ar"
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
 
 # Set up working directory
 WORKDIR /restate
