@@ -52,6 +52,10 @@ ENV PATH="${PATH}:/usr/local/musl-x86_64/bin:/usr/local/musl-aarch64/bin"
 ENV SCCACHE_DIR=/usr/local/sccache
 ENV RUSTC_WRAPPER="sccache"
 
+# linker script forcing static compilation of libstdc++
+RUN echo 'GROUP ( libstdc++.a AS_NEEDED( -lgcc -lc -lm ) )' > $(readlink -f $(x86_64-unknown-linux-musl-g++ --print-file-name libstdc++.so))
+RUN echo 'GROUP ( libstdc++.a AS_NEEDED( -lgcc -lc -lm ) )' > $(readlink -f $(aarch64-unknown-linux-musl-g++ --print-file-name libstdc++.so))
+
 # x86_64 musl
 ENV CC_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-gcc"
 ENV CXX_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-g++"
