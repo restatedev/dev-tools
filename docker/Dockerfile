@@ -16,6 +16,7 @@ RUN cargo search --limit=1 && \
     llvm \
     liburing-dev \
     ca-certificates \
+    build-essential \
     git \
     curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
