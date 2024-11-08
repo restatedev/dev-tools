@@ -36,11 +36,11 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash 
 # Install `sccache` and `buf` in a single layer
 ARG TARGETARCH
 RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
-    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
+    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
     tar -xvf sccache.tar.gz && \
     rm sccache.tar.gz && \
-    cp sccache-v0.7.4-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
-    rm -rf sccache-v0.7.4-${arch}-unknown-linux-musl && \
+    cp sccache-v0.8.2-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
+    rm -rf sccache-v0.8.2-${arch}-unknown-linux-musl && \
     curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.29.0/buf-Linux-${arch}" -o "/usr/bin/buf" && \
     chmod +x "/usr/bin/buf"
 
