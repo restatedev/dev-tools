@@ -1,55 +1,92 @@
-# Copyright (c) 2023 -  Restate Software, Inc., Restate GmbH.
-# All rights reserved.
-#
-# Use of this software is governed by the Business Source License
-# included in the LICENSE file.
-#
-# As of the Change Date specified in that file, in accordance with
-# the Business Source License, use of this software will be governed
-# by the Apache License, Version 2.0.
+FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS musl_x86_64
+FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS musl_aarch64
 
-FROM --platform=$BUILDPLATFORM ghcr.io/restatedev/dev-tools:latest AS planner
-COPY . .
-RUN just chef-prepare
+FROM rust:1.80.1-slim-bookworm AS build-base
 
-FROM --platform=$BUILDPLATFORM ghcr.io/restatedev/dev-tools:latest AS base
-COPY --from=planner /restate/recipe.json recipe.json
-COPY justfile justfile
+# Prepopulate cargo index and install dependencies
+RUN cargo search --limit=1 && \
+    apt update && apt upgrade -y && \
+    apt -y install --no-install-recommends \
+    g++-x86-64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    protobuf-compiler \
+    libprotoc-dev \
+    clang \
+    cmake \
+    llvm \
+    liburing-dev \
+    ca-certificates \
+    build-essential \
+    git \
+    curl && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# avoid sharing sccache port between multiplatform builds - they share a network but not a filesystem, so it won't work
-FROM base AS base-amd64
-ARG SCCACHE_SERVER_PORT=4226
+# Install rustup components and global tools in a single layer
+RUN rustup target add \
+    x86_64-unknown-linux-musl \
+    aarch64-unknown-linux-musl \
+    x86_64-unknown-linux-gnu \
+    aarch64-unknown-linux-gnu && \
+    rustup component add clippy rustfmt && \
+    cargo install cargo-chef@0.1.67 cargo-license@0.6.1
 
-FROM base AS base-arm64
-ARG SCCACHE_SERVER_PORT=4227
+# Install `just`
+RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
-FROM base-$TARGETARCH AS builder
-ARG SCCACHE_SERVER_PORT
+# Install `sccache` and `buf` in a single layer
 ARG TARGETARCH
-# https://github.com/mozilla/sccache/blob/main/docs/GHA.md
-ARG ACTIONS_CACHE_URL=''
-ARG ACTIONS_RUNTIME_TOKEN=''
-ARG SCCACHE_GHA_ENABLED=''
-# Overrides the behaviour of the release profile re including debug symbols, which in our repo is not to include them.
-# Should be set to 'false' or 'true'. See https://doc.rust-lang.org/cargo/reference/environment-variables.html
-ARG CARGO_PROFILE_RELEASE_DEBUG=false
-ARG RESTATE_FEATURES=''
-# Caching layer if nothing has changed
-# Only build restate binary to avoid compiling unneeded crates
-RUN just arch=$TARGETARCH libc=gnu features=$RESTATE_FEATURES chef-cook --release --bin restate-server
-COPY . .
-RUN just arch=$TARGETARCH libc=gnu features=$RESTATE_FEATURES build --release --bin restate-server && \
-    just notice-file && \
-    mv target/$(just arch=$TARGETARCH libc=gnu print-target)/release/restate-server target/restate-server
+RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
+    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
+    tar -xvf sccache.tar.gz && \
+    rm sccache.tar.gz && \
+    cp sccache-v0.8.2-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
+    rm -rf sccache-v0.8.2-${arch}-unknown-linux-musl && \
+    curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.29.0/buf-Linux-${arch}" -o "/usr/bin/buf" && \
+    chmod +x "/usr/bin/buf"
 
-# We do not need the Rust toolchain to run the server binary!
-FROM debian:bookworm-slim AS runtime
-COPY --from=builder /restate/target/restate-server /usr/local/bin
-COPY --from=builder /restate/NOTICE /NOTICE
-COPY --from=builder /restate/LICENSE /LICENSE
-# copy OS roots
-COPY --from=builder /etc/ssl /etc/ssl
-# useful for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-WORKDIR /
-ENTRYPOINT ["/usr/local/bin/restate-server"]
+# Copy musl from the prebuilt x86_64 and aarch64 images
+COPY --from=musl_x86_64 "/usr/local/musl" /usr/local/musl-x86_64/
+COPY --from=musl_aarch64 "/usr/local/musl" /usr/local/musl-aarch64/
+
+# Set environment variables for cross-compilation
+ENV PATH="${PATH}:/usr/local/musl-x86_64/bin:/usr/local/musl-aarch64/bin"
+ENV SCCACHE_DIR=/usr/local/sccache
+ENV RUSTC_WRAPPER="sccache"
+
+# linker script forcing static compilation of libstdc++
+RUN echo 'GROUP ( libstdc++.a AS_NEEDED( -lgcc -lc -lm ) )' > $(readlink -f $(x86_64-unknown-linux-musl-g++ --print-file-name libstdc++.so))
+RUN echo 'GROUP ( libstdc++.a AS_NEEDED( -lgcc -lc -lm ) )' > $(readlink -f $(aarch64-unknown-linux-musl-g++ --print-file-name libstdc++.so))
+
+# x86_64 musl
+ENV CC_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-gcc"
+ENV CXX_x86_64_unknown_linux_musl="sccache x86_64-unknown-linux-musl-g++"
+ENV AR_x86_64_unknown_linux_musl="x86_64-unknown-linux-musl-ar"
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="x86_64-unknown-linux-musl-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_musl="--sysroot=/usr/x86_64-linux-musl"
+
+# aarch64 musl
+ENV CC_aarch64_unknown_linux_musl="sccache aarch64-unknown-linux-musl-gcc"
+ENV CXX_aarch64_unknown_linux_musl="sccache aarch64-unknown-linux-musl-g++"
+ENV AR_aarch64_unknown_linux_musl="aarch64-unknown-linux-musl-ar"
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER="aarch64-unknown-linux-musl-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_musl="--sysroot=/usr/aarch64-linux-musl"
+
+# x86_64 gnu
+ENV CC_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-gcc"
+ENV CXX_x86_64_unknown_linux_gnu="sccache x86_64-linux-gnu-g++"
+ENV AR_x86_64_unknown_linux_gnu="x86_64-linux-gnu-ar"
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="x86_64-linux-gnu-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_x86_64_unknown_linux_gnu="--sysroot=/usr/x86_64-linux-gnu"
+
+# aarch64 gnu
+ENV CC_aarch64_unknown_linux_gnu="sccache aarch64-linux-gnu-gcc"
+ENV CXX_aarch64_unknown_linux_gnu="sccache aarch64-linux-gnu-g++"
+ENV AR_aarch64_unknown_linux_gnu="aarch64-linux-gnu-ar"
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc"
+ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
+
+# Set up working directory
+WORKDIR /restate
+
+# Make git work if different owner runs commands
+RUN git config --global --add safe.directory /restate
