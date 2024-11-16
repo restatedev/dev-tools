@@ -1,7 +1,7 @@
 FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS musl_x86_64
 FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS musl_aarch64
 
-FROM rust:1.80.1-slim-bookworm AS build-base
+FROM rust:1.82.0-slim-bookworm AS build-base
 
 # Prepopulate cargo index and install dependencies
 RUN cargo search --limit=1 && \
@@ -28,7 +28,7 @@ RUN rustup target add \
     x86_64-unknown-linux-gnu \
     aarch64-unknown-linux-gnu && \
     rustup component add clippy rustfmt && \
-    cargo install cargo-chef@0.1.67 cargo-license@0.6.1
+    cargo install cargo-chef@0.1.68 cargo-license@0.6.1
 
 # Install `just`
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
@@ -36,12 +36,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash 
 # Install `sccache` and `buf` in a single layer
 ARG TARGETARCH
 RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
-    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
+    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
     tar -xvf sccache.tar.gz && \
     rm sccache.tar.gz && \
-    cp sccache-v0.7.4-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
-    rm -rf sccache-v0.7.4-${arch}-unknown-linux-musl && \
-    curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.29.0/buf-Linux-${arch}" -o "/usr/bin/buf" && \
+    cp sccache-v0.8.2-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
+    rm -rf sccache-v0.8.2-${arch}-unknown-linux-musl && \
+    curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.47.2/buf-Linux-${arch}" -o "/usr/bin/buf" && \
     chmod +x "/usr/bin/buf"
 
 # Copy musl from the prebuilt x86_64 and aarch64 images
