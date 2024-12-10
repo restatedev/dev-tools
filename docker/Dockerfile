@@ -33,7 +33,7 @@ RUN rustup target add \
 # Install `just`
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
-# Install `sccache` and `buf` in a single layer
+# Install `sccache`, `buf`, and `parca-debuginfo` in a single layer
 ARG TARGETARCH
 RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
     curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
@@ -42,7 +42,12 @@ RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
     cp sccache-v0.8.2-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
     rm -rf sccache-v0.8.2-${arch}-unknown-linux-musl && \
     curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.47.2/buf-Linux-${arch}" -o "/usr/bin/buf" && \
-    chmod +x "/usr/bin/buf"
+    chmod +x "/usr/bin/buf" && \
+    parca_arch=$(echo "$TARGETARCH" | sed s/amd64/x86_64/) && \
+    curl -sL https://github.com/parca-dev/parca-debuginfo/releases/download/v0.11.0/parca-debuginfo_0.11.0_Linux_${parca_arch}.tar.gz -o parca-debuginfo.tar.gz && \
+    tar -xzf parca-debuginfo.tar.gz parca-debuginfo && \
+    mv parca-debuginfo /usr/bin/parca-debuginfo && \
+    rm parca-debuginfo.tar.gz
 
 # Copy musl from the prebuilt x86_64 and aarch64 images
 COPY --from=musl_x86_64 "/usr/local/musl" /usr/local/musl-x86_64/
