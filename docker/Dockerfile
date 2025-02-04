@@ -1,7 +1,7 @@
 FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS musl_x86_64
 FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS musl_aarch64
 
-FROM rust:1.82.0-slim-bookworm AS build-base
+FROM rust:1.84.1-slim-bookworm AS build-base
 
 # Prepopulate cargo index and install dependencies
 RUN cargo search --limit=1 && \
@@ -28,7 +28,7 @@ RUN rustup target add \
     x86_64-unknown-linux-gnu \
     aarch64-unknown-linux-gnu && \
     rustup component add clippy rustfmt && \
-    cargo install cargo-chef@0.1.68 cargo-license@0.6.1 cargo-hakari@0.9.35
+    cargo install cargo-chef@0.1.71 cargo-license@0.6.1 cargo-hakari@0.9.35
 
 # Install `just`
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
