@@ -1,7 +1,7 @@
 FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS musl_x86_64
 FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS musl_aarch64
 
-FROM rust:1.86.0-slim-bookworm AS build-base
+FROM rust:1.87.0-slim-bookworm AS build-base
 
 # Prepopulate cargo index and install dependencies
 RUN cargo search --limit=1 && \
