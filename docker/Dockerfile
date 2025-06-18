@@ -2,7 +2,7 @@ FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS aarch64-musl
 
 FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl AS x86_64-musl
 
-FROM rust:1.80.1-bookworm
+FROM rust:1.87.0-bookworm
 # prepopulate cargo index
 RUN cargo search --limit=1
 RUN apt update && apt upgrade -y
