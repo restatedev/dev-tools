@@ -28,7 +28,7 @@ RUN rustup target add \
     x86_64-unknown-linux-gnu \
     aarch64-unknown-linux-gnu && \
     rustup component add clippy rustfmt && \
-    cargo install cargo-chef@0.1.71 cargo-license@0.6.1 cargo-hakari@0.9.35
+    cargo install cargo-chef@0.1.72 cargo-license@0.6.1 cargo-hakari@0.9.36
 
 # Install `just`
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
@@ -36,18 +36,16 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash 
 # Install `sccache`, `buf`, and `parca-debuginfo` in a single layer
 ARG TARGETARCH
 RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
-    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
+    curl -LSfs https://github.com/mozilla/sccache/releases/download/v0.10.0/sccache-v0.10.0-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
     tar -xvf sccache.tar.gz && \
     rm sccache.tar.gz && \
-    cp sccache-v0.8.2-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
-    rm -rf sccache-v0.8.2-${arch}-unknown-linux-musl && \
-    curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.47.2/buf-Linux-${arch}" -o "/usr/bin/buf" && \
+    cp sccache-v0.10.0-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
+    rm -rf sccache-v0.10.0-${arch}-unknown-linux-musl && \
+    curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.55.1/buf-Linux-${arch}" -o "/usr/bin/buf" && \
     chmod +x "/usr/bin/buf" && \
     parca_arch=$(echo "$TARGETARCH" | sed s/amd64/x86_64/) && \
-    curl -sL https://github.com/parca-dev/parca-debuginfo/releases/download/v0.11.0/parca-debuginfo_0.11.0_Linux_${parca_arch}.tar.gz -o parca-debuginfo.tar.gz && \
-    tar -xzf parca-debuginfo.tar.gz parca-debuginfo && \
-    mv parca-debuginfo /usr/bin/parca-debuginfo && \
-    rm parca-debuginfo.tar.gz
+    curl -sL https://github.com/parca-dev/parca-debuginfo/releases/download/v0.12.2/parca-debuginfo_0.12.2_Linux_${parca_arch} -o parca-debuginfo && \
+    mv parca-debuginfo /usr/bin/parca-debuginfo
 
 # Copy musl from the prebuilt x86_64 and aarch64 images
 COPY --from=musl_x86_64 "/usr/local/musl" /usr/local/musl-x86_64/
