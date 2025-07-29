@@ -44,6 +44,7 @@ RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
     curl -sSLf "https://github.com/bufbuild/buf/releases/download/v1.55.1/buf-Linux-${arch}" -o "/usr/bin/buf" && \
     chmod +x "/usr/bin/buf" && \
     curl -sSLf https://github.com/parca-dev/parca-debuginfo/releases/download/v0.12.2/parca-debuginfo_0.12.2_Linux_${arch} -o parca-debuginfo && \
+    chmod +x parca-debuginfo && \
     mv parca-debuginfo /usr/bin/parca-debuginfo
 
 # Copy musl from the prebuilt x86_64 and aarch64 images
