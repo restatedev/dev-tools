@@ -11,6 +11,7 @@ RUN cargo search --limit=1 && \
     g++-aarch64-linux-gnu \
     protobuf-compiler \
     libprotoc-dev \
+    libcurl4-openssl-dev \
     clang \
     cmake \
     llvm \
