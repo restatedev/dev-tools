@@ -4,7 +4,6 @@ FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl AS musl_aarch64
 FROM rust:1.91.0-slim-trixie AS build-base
 
 # Prepopulate cargo index and install dependencies
-# libcurl4-openssl-dev and libsasl2-dev are require for building with the Kafka OIDC feature enabled.
 RUN cargo search --limit=1 && \
     apt update && apt upgrade -y && \
     apt -y install --no-install-recommends \
@@ -12,8 +11,6 @@ RUN cargo search --limit=1 && \
     g++-aarch64-linux-gnu \
     protobuf-compiler \
     libprotoc-dev \
-    libcurl4-openssl-dev \
-    libsasl2-dev \
     clang \
     cmake \
     llvm \
