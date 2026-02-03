@@ -18,6 +18,7 @@ RUN cargo search --limit=1 && \
     ca-certificates \
     build-essential \
     git \
+    elfutils \
     curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
