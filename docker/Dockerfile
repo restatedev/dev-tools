@@ -1,6 +1,69 @@
 FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl@sha256:2a8837c43bf12e246f1ebd05191de9ee27fcd22f9ca81511ccd4cf75dc16d71c AS musl_x86_64
 FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl@sha256:6ba919646c5073918e9ac03353dfbfe8552db0acd2f55f76a19af1a4a30a06bb AS musl_aarch64
 
+
+ARG FOLLY_REF=v2026.05.11.00
+
+# ---- Folly builder stage ----
+# Source-builds folly + its transitive deps (boost, glog, gflags, ...) into a
+# self-contained tree under /folly-build/installed. Done once per image build
+# (per-arch via buildx); subsequent layer-cache hits skip the ~30min rebuild.
+FROM rust:1.95.0-slim-trixie AS folly-builder
+
+
+# Install folly build dependencies
+RUN apt update && apt upgrade -y && \
+    apt -y install --no-install-recommends \
+    clang \
+    cmake \
+    llvm \
+    liburing-dev \
+    ca-certificates \
+    build-essential \
+    git \
+    # folly
+    ninja-build \
+    pkg-config \
+    python3 \
+    libboost-all-dev \
+    libbz2-dev \
+    libdouble-conversion-dev \
+    libevent-dev \
+    libfmt-dev \
+    libgflags-dev \
+    libgoogle-glog-dev \
+    liblz4-dev \
+    liblzma-dev \
+    libsnappy-dev \
+    libsodium-dev \
+    libssl-dev \
+    libunwind-dev \
+    libzstd-dev \
+    zlib1g-dev \
+    perl \
+    m4 \
+    autoconf \
+    libtool \
+    automake \
+    patchelf && \
+    # debugging
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/facebook/folly.git /folly && \
+      cd /folly && git checkout ${FOLLY_REF}
+
+RUN cd /folly && python3 build/fbcode_builder/getdeps.py \
+      --allow-system-packages \
+      --scratch-path /folly-build \
+      build --no-tests --build-type RelWithDebInfo folly
+
+# Rename folly-<hash> → folly for a stable FOLLY_PATH; rust-rocksdb's build.rs
+# globs `<dep>-*` for sibling deps, so they keep their hash suffixes.
+RUN cd /folly-build/installed && mv folly-* folly && \
+    rm -rf /folly-build/build /folly-build/extracted /folly-build/downloads
+
+
+# ---- Main build stage ----
 FROM rust:1.95.0-slim-trixie AS build-base
 
 # Prepopulate cargo index and install dependencies
@@ -19,6 +82,12 @@ RUN cargo search --limit=1 && \
     build-essential \
     git \
     elfutils \
+    # folly
+    libboost-all-dev \
+    libgoogle-glog-dev libgflags-dev \
+    libdouble-conversion-dev libevent-dev libsodium-dev \
+    libfmt-dev libunwind-dev \
+    # debugging
     curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -88,6 +157,14 @@ ENV CXX_aarch64_unknown_linux_gnu="sccache aarch64-linux-gnu-g++"
 ENV AR_aarch64_unknown_linux_gnu="aarch64-linux-gnu-ar"
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc"
 ENV BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
+
+# Folly install (built in the folly-builder stage above).
+# rust-rocksdb's build.rs picks FOLLY_PATH up automatically when the
+# `folly` / `folly-coroutines` cargo features are enabled. Sibling deps
+# (boost-*, glog-*, gflags-*, ...) live next to /opt/folly-install/folly.
+COPY --from=folly-builder /folly-build/installed/folly /opt/folly-install/folly
+ENV FOLLY_PATH=/opt/folly-install/folly
+ENV FOLLY_DEPS_SYSTEM=1
 
 # Set up working directory
 WORKDIR /restate
