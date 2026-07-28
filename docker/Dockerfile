@@ -1,7 +1,7 @@
 FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl@sha256:ce75e9174325d4fbb3de85c309e2d7ca29f7500169bc4b5d2c611ff7e86d549a AS musl_x86_64
 FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl@sha256:ecae5dd62d1c938c14f8071d36c16fa699860aace03bfb5284fb1216474d2643 AS musl_aarch64
 
-FROM rust:1.96.1-slim-trixie AS build-base
+FROM rust:1.97.1-slim-trixie AS build-base
 
 # Prepopulate cargo index and install dependencies
 RUN cargo search --limit=1 && \
