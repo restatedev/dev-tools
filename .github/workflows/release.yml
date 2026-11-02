@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.6.2
         with:
           # create a draft release which needs manual approval
           draft: true
