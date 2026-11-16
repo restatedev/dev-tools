@@ -1,7 +1,7 @@
-FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl@sha256:ce75e9174325d4fbb3de85c309e2d7ca29f7500169bc4b5d2c611ff7e86d549a AS musl_x86_64
-FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl@sha256:ecae5dd62d1c938c14f8071d36c16fa699860aace03bfb5284fb1216474d2643 AS musl_aarch64
+FROM ghcr.io/rust-cross/rust-musl-cross:x86_64-musl@sha256:3f1010eb48311dfde5d51f011163451940af34bd317355c4a8652ce6b4b61051 AS musl_x86_64
+FROM ghcr.io/rust-cross/rust-musl-cross:aarch64-musl@sha256:02e790506c5f15a533bc05b3af8719b16a8a2314480f6f0fdc0166432035d9b4 AS musl_aarch64
 
-FROM rust:1.98.1-slim-trixie AS build-base
+FROM rust:1.100.0-slim-trixie AS build-base
 
 # Prepopulate cargo index and install dependencies
 RUN cargo search --limit=1 && \
@@ -29,20 +29,18 @@ RUN rustup target add \
     x86_64-unknown-linux-gnu \
     aarch64-unknown-linux-gnu && \
     rustup component add clippy rustfmt && \
-    cargo install cargo-chef@0.1.78 cargo-license@0.7.0 cargo-hakari@0.9.38
+    cargo install cargo-chef@0.1.78 cargo-license@0.7.0 cargo-hakari@0.9.39
 
-# Install `just`
-RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
-# Install `sccache`, `buf`, and `parca-debuginfo` in a single layer
+# Install `just`, `sccache`, `buf`, and `parca-debuginfo` in a single layer
 ARG TARGETARCH
 RUN arch=$(echo "$TARGETARCH" | sed s/arm64/aarch64/ | sed s/amd64/x86_64/) && \
-    curl -sSLf https://github.com/mozilla/sccache/releases/download/v0.18.0/sccache-v0.18.0-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
+    curl -sSLf https://github.com/casey/just/releases/download/1.59.0/just-1.59.0-${arch}-unknown-linux-musl.tar.gz | tar -xz -C /usr/local/bin just && \
+    curl -sSLf https://github.com/mozilla/sccache/releases/download/v0.19.0/sccache-v0.19.0-${arch}-unknown-linux-musl.tar.gz -o sccache.tar.gz && \
     tar -xvf sccache.tar.gz && \
     rm sccache.tar.gz && \
-    cp sccache-v0.18.0-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
-    rm -rf sccache-v0.18.0-${arch}-unknown-linux-musl && \
-    curl -sSLf "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Linux-${arch}" -o "/usr/bin/buf" && \
+    cp sccache-v0.19.0-${arch}-unknown-linux-musl/sccache /usr/bin/sccache && \
+    rm -rf sccache-v0.19.0-${arch}-unknown-linux-musl && \
+    curl -sSLf "https://github.com/bufbuild/buf/releases/download/v1.75.0/buf-Linux-${arch}" -o "/usr/bin/buf" && \
     chmod +x "/usr/bin/buf" && \
     curl -sSLf https://github.com/parca-dev/parca-debuginfo/releases/download/v0.13.0/parca-debuginfo_0.13.0_Linux_${arch} -o parca-debuginfo && \
     chmod +x parca-debuginfo && \
